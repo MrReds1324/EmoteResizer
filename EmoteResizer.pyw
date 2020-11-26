@@ -1,11 +1,11 @@
 import sys
-
 from os import path
 from time import sleep
+
+from PIL import Image
 from PyQt5.QtCore import Qt, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QComboBox
-from PIL import Image
 
 filters = {
     "Hamming": Image.HAMMING,
