@@ -17,6 +17,47 @@ filters = {
 }
 
 
+# Implements a Worker object that will control resizing and saving images to disk
+# This enables us to show which image is currently being resized and saved as it does not block the main GUI thread
+class Worker(QRunnable):
+    def __init__(self, photo_viewer, urls, selected_image_filter, *args, **kwargs):
+        super(Worker, self).__init__()
+        self.selected_image_filter = selected_image_filter
+        self.photo_viewer = photo_viewer
+        self.urls = urls
+
+    @pyqtSlot()
+    def run(self):
+        for url in self.urls:
+            # Treat each url as a local path
+            file_path = url.toLocalFile()
+            # Open the image as an Pillow Image - this allows us the best photo manipulation
+            im = Image.open(file_path)
+            # Set the image label with the image
+            self.photo_viewer.setPixmap(QPixmap(file_path))
+
+            file_directory = path.dirname(file_path)
+            base_file_parts = path.basename(file_path).rsplit('.')
+
+            for size in [56, 28]:
+                # Rebuild basename with image size appended to the end
+                if len(base_file_parts) == 2:
+                    updated_file_name = f'{base_file_parts[0]}{str(size)}.{base_file_parts[1]}'
+                else:
+                    updated_file_name = f'{base_file_parts[0]}{str(size)}'
+                new_file_path = path.join(file_directory, updated_file_name)
+
+                try:
+                    im.copy().resize((size, size), self.selected_image_filter).save(new_file_path)
+                except Exception as e:
+                    print(e)
+
+            # Sleep to allow time for the image to show on screen
+            sleep(1)
+        # Reset the text once all photos are finished
+        self.photo_viewer.setText('\n\n Drop Image Here \n\n')
+
+
 class ImageLabel(QLabel):
     def __init__(self):
         super().__init__()
@@ -83,23 +124,6 @@ class ResizeApp(QWidget):
             event.accept()
         else:
             event.ignore()
-
-    def resize_save_image(self, file_path):
-        original_image = QPixmap(file_path)
-        self.photoViewer.setPixmap(original_image)
-
-        file_directory = os.path.dirname(file_path)
-        base_file_parts = os.path.basename(file_path).rsplit('.')
-
-        for size in [56, 28]:
-            new_image = original_image.scaled(size, size, QtCore.Qt.KeepAspectRatio)
-            if len(base_file_parts) == 2:
-                updated_file_name = f'{base_file_parts[0]}{str(size)}.{base_file_parts[1]}'
-            else:
-                updated_file_name = f'{base_file_parts[0]}{str(size)}'
-            new_file_path = os.path.join(file_directory, updated_file_name)
-            new_image.save(new_file_path)
-
 
 app = QApplication(sys.argv)
 resize_app = ResizeApp()
