@@ -126,11 +126,10 @@ class ResizeApp(QWidget):
         else:
             event.ignore()
 
-    # Clear and destroy the threadpool object before exiting
+    # Clear and wait for the threadpool to finish before exiting
     def closeEvent(self, event):
         self.threadpool.clear()
         self.threadpool.waitForDone()
-        del self.threadpool
 
 app = QApplication(sys.argv)
 resize_app = ResizeApp()
