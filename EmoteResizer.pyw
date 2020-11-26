@@ -5,6 +5,16 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
+from PIL import Image
+
+filters = {
+    "Hamming": Image.HAMMING,
+    "Nearest Neighbor": Image.NEAREST,
+    "Box": Image.BOX,
+    "Bilinear": Image.BILINEAR,
+    "Bicubic": Image.BICUBIC,
+    "Lanczos": Image.LANCZOS
+}
 
 
 class ImageLabel(QLabel):
@@ -28,14 +38,30 @@ class ResizeApp(QWidget):
         super().__init__()
         self.resize(400, 400)
         self.setAcceptDrops(True)
+        self.selected_image_filter = Image.HAMMING
 
         mainLayout = QVBoxLayout()
 
-        self.photoViewer = ImageLabel()
-        mainLayout.addWidget(self.photoViewer)
 
+        self.photoViewer = ImageLabel()
+
+        self.label = QLabel()
+        self.label.setFixedHeight(15)
+        self.label.setText('Image Filtering Technique')
+        self.label.setAlignment(Qt.AlignCenter)
+
+        self.cb = QComboBox()
+        self.cb.addItems(filters.keys())
+        self.cb.currentIndexChanged.connect(self.selectionChange)
+        self.label.setBuddy(self.cb)
         self.setLayout(mainLayout)
 
+        mainLayout.addWidget(self.photoViewer)
+        mainLayout.addWidget(self.label)
+        mainLayout.addWidget(self.cb)
+
+    def selectionChange(self):
+        self.selected_image_filter = filters.get(self.cb.currentText())
     def dragEnterEvent(self, event):
         if event.mimeData().hasImage:
             event.accept()
