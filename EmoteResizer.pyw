@@ -1,10 +1,10 @@
-import os
 import sys
 
-from PyQt5 import QtCore
-from PyQt5.QtCore import Qt
+from os import path
+from time import sleep
+from PyQt5.QtCore import Qt, QRunnable, pyqtSlot, QThreadPool
 from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QComboBox
 from PIL import Image
 
 filters = {
@@ -80,9 +80,9 @@ class ResizeApp(QWidget):
         self.resize(400, 400)
         self.setAcceptDrops(True)
         self.selected_image_filter = Image.HAMMING
-
         mainLayout = QVBoxLayout()
 
+        self.threadpool = QThreadPool()
 
         self.photoViewer = ImageLabel()
 
@@ -103,6 +103,7 @@ class ResizeApp(QWidget):
 
     def selectionChange(self):
         self.selected_image_filter = filters.get(self.cb.currentText())
+
     def dragEnterEvent(self, event):
         if event.mimeData().hasImage:
             event.accept()
@@ -118,8 +119,8 @@ class ResizeApp(QWidget):
     def dropEvent(self, event):
         if event.mimeData().hasImage:
             event.setDropAction(Qt.CopyAction)
-            file_path = event.mimeData().urls()[0].toLocalFile()
-            self.resize_save_image(file_path)
+            worker = Worker(self.photoViewer, event.mimeData().urls(), self.selected_image_filter)
+            self.threadpool.start(worker)
 
             event.accept()
         else:
