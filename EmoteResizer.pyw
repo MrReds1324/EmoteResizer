@@ -26,7 +26,7 @@ class Worker(QRunnable):
         self.selected_image_filter = selected_image_filter
         self.photo_viewer = photo_viewer
         self.urls = urls
-        self.selected_image_filter = selected_image_filter
+        self.selected_image_type = selected_image_type
 
     @pyqtSlot()
     def run(self):
