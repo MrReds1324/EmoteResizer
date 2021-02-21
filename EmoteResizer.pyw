@@ -16,15 +16,17 @@ filters = {
     "Lanczos": Image.LANCZOS
 }
 
+imageTypes = ['Emote', 'Badge']
 
 # Implements a Worker object that will control resizing and saving images to disk
 # This enables us to show which image is currently being resized and saved as it does not block the main GUI thread
 class Worker(QRunnable):
-    def __init__(self, photo_viewer, urls, selected_image_filter, *args, **kwargs):
+    def __init__(self, photo_viewer, urls, selected_image_filter, selected_image_type, *args, **kwargs):
         super(Worker, self).__init__()
         self.selected_image_filter = selected_image_filter
         self.photo_viewer = photo_viewer
         self.urls = urls
+        self.selected_image_filter = selected_image_filter
 
     @pyqtSlot()
     def run(self):
@@ -39,7 +41,12 @@ class Worker(QRunnable):
             file_directory = path.dirname(file_path)
             base_file_parts = path.basename(file_path).rsplit('.')
 
-            for size in [56, 28]:
+            if self.selected_image_type == 'Emote':
+                sizes = [56, 28]
+            else:
+                sizes = [36, 18]
+
+            for size in sizes:
                 # Rebuild basename with image size appended to the end
                 if len(base_file_parts) == 2:
                     updated_file_name = f'{base_file_parts[0]}{str(size)}.{base_file_parts[1]}'
@@ -77,9 +84,11 @@ class ImageLabel(QLabel):
 class ResizeApp(QWidget):
     def __init__(self):
         super().__init__()
+
         self.resize(400, 400)
         self.setAcceptDrops(True)
         self.selected_image_filter = Image.HAMMING
+        self.selected_image_type = imageTypes[0]
         mainLayout = QVBoxLayout()
 
         self.threadpool = QThreadPool()
@@ -94,15 +103,31 @@ class ResizeApp(QWidget):
         self.cb = QComboBox()
         self.cb.addItems(filters.keys())
         self.cb.currentIndexChanged.connect(self.selectionChange)
-        self.label.setBuddy(self.cb)
+
+
+        self.labelImageType = QLabel()
+        self.labelImageType.setFixedHeight(16)
+        self.labelImageType.setText('Badge or Emote')
+        self.labelImageType.setAlignment(Qt.AlignCenter)
+
+        self.imageType = QComboBox()
+        self.imageType.addItems(imageTypes)
+        self.imageType.currentIndexChanged.connect(self.selectionChangeEmote)
+
+        self.labelImageType.setBuddy(self.imageType)
         self.setLayout(mainLayout)
 
         mainLayout.addWidget(self.photoViewer)
         mainLayout.addWidget(self.label)
         mainLayout.addWidget(self.cb)
+        mainLayout.addWidget(self.labelImageType)
+        mainLayout.addWidget(self.imageType)
 
     def selectionChange(self):
         self.selected_image_filter = filters.get(self.cb.currentText())
+
+    def selectionChangeEmote(self):
+        self.selected_image_type = self.imageType.currentText()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasImage:
@@ -119,7 +144,7 @@ class ResizeApp(QWidget):
     def dropEvent(self, event):
         if event.mimeData().hasImage:
             event.setDropAction(Qt.CopyAction)
-            worker = Worker(self.photoViewer, event.mimeData().urls(), self.selected_image_filter)
+            worker = Worker(self.photoViewer, event.mimeData().urls(), self.selected_image_filter, self.selected_image_type)
             self.threadpool.start(worker)
 
             event.accept()
